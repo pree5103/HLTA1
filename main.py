@@ -20,7 +20,7 @@ for rev in reviews:
     #hashmap to store the counts of each word in the current review
     wordCounts = {}
     #translator to get rid of punctuation in rev
-    translator = rev.maketrans('', '', string.punctuation)
+    translator = rev.maketrans('', '', string.punctuation.replace("'", ""))
     rev = rev.translate(translator)
     #split on space in order to get each individual word
     words = rev.split()
@@ -49,7 +49,7 @@ def bigram(revNum, word1, word2):
     #populate review with the specified review
     review = reviews[revNum]
     # translator to get rid of punctuation in the review
-    translator = review.maketrans('', '', string.punctuation)
+    translator = review.maketrans('', '', string.punctuation.replace("'", ""))
     review = review.translate(translator)
     # split the review to get the words in order
     review = review.split()
@@ -69,6 +69,5 @@ def bigram(revNum, word1, word2):
     #probability is the percentage of correctPairs in all of the found wordPairs
     probability = correctPairs / wordPairs
     return probability
-
 #print(unigram(0, "the"))
-#print(bigram(0, "they", "were"))
+#print(bigram(1, "they", "were"))
