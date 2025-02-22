@@ -1,12 +1,12 @@
-from collections import Counter
+from collections import Counter, defaultdict
 import string
 
 # DATA NORMALIZATION FOR EACH REVIEW
 
 #opening the train file 
 file = open("train.txt", "r")
-reviews = [] #holds all the reviews
-
+#holds all the reviews
+reviews = []
 #populates reviews with the reviews in file
 for i in file:
     #makes every character in i, lowercase
@@ -32,22 +32,22 @@ print("'were' in Implicit Vocab?:", "were" in implicit_vocab)
 
 #holds all the count data for each unigram of the review
 reviewData = {}
-revNum = 0 #the current review number
-
+#the current review number 
+revNum = 0
+# Number of bigrams for use in smoothing
+bigram_counts = defaultdict(Counter)
+unigram_counts = Counter()
+#vocab_size = set()  # No longer need to track vocabulary size as a set because of the build vocab
 #choose whether to use fixed or implicit vocab
 use_fixed_vocab = False #change to False to use implicit vocab
 
 #for each review find the count for each word and add that to reviewData
 for rev in reviews:
-    #hashmap to store the counts of each word in the current review
-    wordCounts = {}
-
-    #translator to get rid of punctuation in rev
+    # translator to get rid of punctuation in rev
     translator = rev.maketrans('', '', string.punctuation.replace("'", ""))
     rev = rev.translate(translator)
     #split on space in order to get each individual word
     words = rev.split()
-
     #replace unknown words
     if use_fixed_vocab:
         words = [word if word in fixed_vocab else "<UNK>" for word in words]
@@ -59,14 +59,20 @@ for rev in reviews:
     
     #holds the word counts for each word in the review rev
     wordCounts = Counter(words)
-
+    unigram_counts.update(words)
+    # Track vocab size as a set to get unique words (equivalent to vocab size)
+    #vocab_size.update(words) #No longer updating since we got the build vocab function
     #set the reviewData for that review to wordCounts
     reviewData[revNum] = wordCounts
-
     # increment revNum
     revNum += 1
-
- 
+    # Update bigram counts (aka word combinations)
+    for i in range(len(words) - 1):
+        bigram_counts[words[i]][words[i + 1]] += 1
+        
+vocab = fixed_vocab if use_fixed_vocab else implicit_vocab
+vocab_size = len(vocab)
+#print(len(vocab_size))
 # UNIGRAM 
 def unigram(revNum, word):
     #holds the data for the specific review we're analyzing
@@ -84,7 +90,6 @@ def unigram(revNum, word):
 
     #return the probability rounded to 2 digits
     return round(prob, 2) if totalWords > 0 else 0.0
-
 
 #BIGRAM
 def bigram(revNum, word1, word2):
@@ -107,8 +112,43 @@ def bigram(revNum, word1, word2):
     
     return round(probability, 2)
 
+def laplacian_smoothing(word1, word2):
+    # Replace unknown words with <UNK>
+    if word1 not in vocab:
+        word1 = "<UNK>"
+    if word2 not in vocab:
+        word2 = "<UNK>"
+        
+    # Fetch our bigram count for this pair of words, unigram count for word1, and vocab size
+    bigram_count = bigram_counts[word1].get(word2, 0)
+    unigram_count = unigram_counts.get(word1, 0)
 
- 
+    # Just to avoid 0 division (though it's only really a problem if the unigram_count is 0)
+    if unigram_count == 0:
+        return 0.0
+    
+    # We have all of our info, now it's just applying the formula we had from class (bigram count + 1 divided by sum of word1 count and vocab size)
+    probability = (bigram_count + 1) / (unigram_count + vocab_size)
+    return probability
+
+# Adjust k to whatever you want, I just left 1 to be our placeholder
+def add_k_smoothing(word1, word2, k=1):
+    # Replace unknown words with <UNK>
+    if word1 not in vocab:
+        word1 = "<UNK>"
+    if word2 not in vocab:
+        word2 = "<UNK>"
+    # Same set-up as Laplacian
+    bigram_count = bigram_counts[word1].get(word2, 0)
+    unigram_count = unigram_counts.get(word1, 0)
+    
+    if unigram_count == 0:
+        return 0.0
+    
+    # Slightly different formula where k is added to bigram count and multiplied by vocab size in denominator
+    probability = (bigram_count + k) / (unigram_count + (k * vocab_size))
+    return probability
+
 #test unsmoothed
 print(unigram(0, "the"))
 print(bigram(1, "they", "were"))
@@ -119,9 +159,17 @@ print("bigram prob of <UNK> and they:", bigram(1, "<UNK>", "they"))  # Check if 
 print("bigram prob of they and <UNK>:", bigram(1, "they", "<UNK>"))
 print("bigram prob of <UNK> and <UNK>:", bigram(1, "<UNK>", "<UNK>"))
 #more test cases to check different scenarios
-print("Unigram prob of 'the':", unigram(0, "the"))
-print("Bigram prob of 'they were':", bigram(1, "they", "were"))
-print("Unigram prob of <UNK>:", unigram(0, "<UNK>"))
-print("Bigram prob of <UNK> and 'the':", bigram(0, "<UNK>", "the"))
-print("Bigram prob of 'the' and <UNK>:", bigram(0, "the", "<UNK>"))
-print("Bigram prob of <UNK> and <UNK>:", bigram(0, "<UNK>", "<UNK>"))
+print("unigram prob of 'the':", unigram(0, "the"))
+print("bigram prob of 'they were':", bigram(1, "they", "were"))
+print("unigram prob of <UNK>:", unigram(0, "<UNK>"))
+print("bigram prob of <UNK> and 'the':", bigram(0, "<UNK>", "the"))
+print("bigram prob of 'the' and <UNK>:", bigram(0, "the", "<UNK>"))
+print("bigram prob of <UNK> and <UNK>:", bigram(0, "<UNK>", "<UNK>"))
+
+#test the smoothing methods
+print("Laplacian prob: ", laplacian_smoothing("they", "were"))
+print("Add K prob: ", add_k_smoothing("they", "were"))
+print("Laplacian prob with <UNK>: ", laplacian_smoothing("<UNK>", "the"))
+print("Add K prob with <UNK>: ", add_k_smoothing("<UNK>", "the"))
+print("Laplacian prob with unknown word: ", laplacian_smoothing("zzzz", "the"))
+print("Add K prob with unknown word: ", add_k_smoothing("zzzz", "the"))
