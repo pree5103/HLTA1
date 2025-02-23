@@ -37,6 +37,7 @@ revNum = 0
 # Number of bigrams for use in smoothing
 bigram_counts = defaultdict(Counter)
 unigram_counts = Counter()
+
 #vocab_size = set()  # No longer need to track vocabulary size as a set because of the build vocab
 #choose whether to use fixed or implicit vocab
 use_fixed_vocab = False #change to False to use implicit vocab
@@ -159,17 +160,17 @@ print("bigram prob of <UNK> and they:", bigram(1, "<UNK>", "they"))  # Check if 
 print("bigram prob of they and <UNK>:", bigram(1, "they", "<UNK>"))
 print("bigram prob of <UNK> and <UNK>:", bigram(1, "<UNK>", "<UNK>"))
 #more test cases to check different scenarios
-print("unigram prob of 'the':", unigram(0, "the"))
-print("bigram prob of 'they were':", bigram(1, "they", "were"))
-print("unigram prob of <UNK>:", unigram(0, "<UNK>"))
-print("bigram prob of <UNK> and 'the':", bigram(0, "<UNK>", "the"))
-print("bigram prob of 'the' and <UNK>:", bigram(0, "the", "<UNK>"))
-print("bigram prob of <UNK> and <UNK>:", bigram(0, "<UNK>", "<UNK>"))
+print("Unigram prob of 'the':", unigram(0, "the"))
+print("Bigram prob of 'they were':", bigram(1, "they", "were"))
+print("Unigram prob of <UNK>:", unigram(0, "<UNK>"))
+print("Bigram prob of <UNK> and 'the':", bigram(0, "<UNK>", "the"))
+print("Bigram prob of 'the' and <UNK>:", bigram(0, "the", "<UNK>"))
+print("Bigram prob of <UNK> and <UNK>:", bigram(0, "<UNK>", "<UNK>"))
 
-#test the smoothing methods
-print("Laplacian prob: ", laplacian_smoothing("they", "were"))
-print("Add K prob: ", add_k_smoothing("they", "were"))
-print("Laplacian prob with <UNK>: ", laplacian_smoothing("<UNK>", "the"))
-print("Add K prob with <UNK>: ", add_k_smoothing("<UNK>", "the"))
-print("Laplacian prob with unknown word: ", laplacian_smoothing("zzzz", "the"))
-print("Add K prob with unknown word: ", add_k_smoothing("zzzz", "the"))
+# Test the smoothing methods
+print("Laplacian Probability: ", laplacian_smoothing("they", "were"))
+print("Add K Probability: ", add_k_smoothing("they", "were"))
+print("Laplacian Probability with <UNK>: ", laplacian_smoothing("<UNK>", "the"))
+print("Add K Probability with <UNK>: ", add_k_smoothing("<UNK>", "the"))
+print("Laplacian Probability with unknown word: ", laplacian_smoothing("zzzz", "the"))
+print("Add K Probability with unknown word: ", add_k_smoothing("zzzz", "the"))
