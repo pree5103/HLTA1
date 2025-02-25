@@ -1,3 +1,6 @@
+#CS 4395, Group 16
+#Group Members: Nick Tollinger (ngt190001), Gian Nguyen (gqn230000), Preethika Somarapu (pxs200074), Vrishti Misra (vxm210064) 
+
 from collections import Counter, defaultdict
 import string
 import math
