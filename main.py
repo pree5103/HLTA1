@@ -1,5 +1,9 @@
+#CS 4395, Group 16
+#Group Members: Nick Tollinger (ngt190001), Gian Nguyen (gqn230000), Preethika Somarapu (pxs200074), Vrishti Misra (vxm210064) 
+
 from collections import Counter, defaultdict
 import string
+import math
 
 # DATA NORMALIZATION FOR EACH REVIEW
 
@@ -129,6 +133,7 @@ print("Add-K Probability with implicit vocab: ", add_k_smoothing("zzzz", "the"))
 vocab = fixed_vocab
 print("Add-K Probability with fixed vocab: ", add_k_smoothing("zzzz", "the"))
 print("===================================")
+
 #debug: in case probabilities are identical between implicit and fixed vocabularies
 # print("Size of implicit vocab:", len(implicit_vocab))
 # print("Size of fixed vocab:", len(fixed_vocab))
@@ -139,3 +144,65 @@ print("===================================")
 # else:
 #    print("More than 5%. Check for discrepancies between implicit and fixed vocabularies.")
 
+#opening the validation file and converting all text to lowercase
+with open("val.txt", "r") as f:
+    val_reviews = [line.lower() for line in f]
+
+#function to compute unigram perplexity
+def compute_unigram_perplexity(val_reviews):
+    total_log_prob = 0.0  #keeps track of total log probability
+    total_tokens = 0  #counts total tokens in validation set
+    total_words = sum(unigram_counts.values())  #total words in training data
+
+    for line in val_reviews:
+        tokens = replace_unknown_words(preprocess_line(line), vocab)  #preprocess validation text
+        for token in tokens:
+            p = unigram_counts.get(token, 0) / total_words if total_words > 0 else 0  #unigram probability
+            if p == 0:
+                p = 1e-10  #avoid log(0) issue
+            total_log_prob += math.log(p)
+            total_tokens += 1
+
+    avg_log_prob = total_log_prob / total_tokens if total_tokens > 0 else float('-inf')  #compute average log probability
+    return math.exp(-avg_log_prob)  #compute perplexity
+
+#function to compute unsmoothed bigram probability
+def unsmoothed_bigram_prob(word1, word2):
+    word1, word2 = replace_unknown_words([word1, word2], vocab)  #replace unknown words with <unk>
+    total_pairs = sum(bigram_counts[word1].values())  #total occurrences of word1 in bigram model
+    p = bigram_counts[word1].get(word2, 0) / total_pairs if total_pairs > 0 else 0.0  #bigram probability
+    return p
+
+#function to compute bigram perplexity
+def compute_bigram_perplexity(val_reviews, smoothing_func):
+    total_log_prob = 0.0  #keeps track of total log probability
+    total_tokens = 0  #counts total tokens in validation set
+
+    for line in val_reviews:
+        tokens = replace_unknown_words(preprocess_line(line), vocab)  #preprocess validation text
+        tokens = ["<s>"] + tokens + ["</s>"]  #add sentence boundary tokens
+
+        for i in range(len(tokens)-1):
+            p = smoothing_func(tokens[i], tokens[i+1])  #compute probability using smoothing function
+            if p == 0:
+                p = 1e-10  #avoid log(0) issue
+            total_log_prob += math.log(p)
+            total_tokens += 1
+
+    avg_log_prob = total_log_prob / total_tokens if total_tokens > 0 else float('-inf')  #compute average log probability
+    return math.exp(-avg_log_prob)  #compute perplexity
+
+#print perplexity results for different models
+print("PERPLEXITY")
+print("Unigram Perplexity:", round(compute_unigram_perplexity(val_reviews),4))
+print("Bigram Perplexity (Unsmoothed):", round(compute_bigram_perplexity(val_reviews, unsmoothed_bigram_prob),4))
+print("Bigram Perplexity (Laplacian):", round(compute_bigram_perplexity(val_reviews, laplacian_smoothing),4))
+print("Bigram Perplexity (Add-k, K=1):", round(compute_bigram_perplexity(val_reviews, lambda w1, w2: add_k_smoothing(w1, w2, k=1)),4))
+
+print("===================================")
+print("Testing different k values for Add-K Smoothing:")
+k_values = [0.5, 1, 1.5, 2]  #list of k values to test
+for k in k_values:
+    #compute bigram perplexity using add-k smoothing with the current k value
+    perplexity = compute_bigram_perplexity(val_reviews, lambda w1, w2: add_k_smoothing(w1, w2, k=k))
+    print(f"Add-K Perplexity (k={k}): {round(perplexity, 4)}")
